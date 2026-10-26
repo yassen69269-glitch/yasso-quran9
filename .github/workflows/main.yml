@@ -1,0 +1,47 @@
+
+name: Build Yasso Quran APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'YassoQuran-New-Project.zip'
+      - '.github/workflows/main.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download project files
+        uses: actions/checkout@v4
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Extract Android project
+        run: |
+          test -f YassoQuran-New-Project.zip
+          mkdir project
+          unzip -o YassoQuran-New-Project.zip -d project
+          find project -name settings.gradle -exec dirname {} \; > project_dir.txt
+          PROJECT_DIR=$(head -n 1 project_dir.txt)
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Build APK
+        run: gradle -p "$PROJECT_DIR" assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yasso-Quran-APK
+          path: project/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
